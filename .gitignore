@@ -1,0 +1,8 @@
+.idea/.gitignore
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules.xml
+.idea/webscrapingscripts.iml
+__pycache__/
+testlocation.py
+webscrapping/
