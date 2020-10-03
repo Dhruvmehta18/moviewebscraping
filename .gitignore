@@ -4,5 +4,6 @@
 .idea/modules.xml
 .idea/webscrapingscripts.iml
 __pycache__/
+.vscode/settings.json
 testlocation.py
 webscrapping/

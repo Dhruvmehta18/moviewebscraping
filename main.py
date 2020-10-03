@@ -1,5 +1,6 @@
 from logging import error
 import os
+from typing import List, Any, Mapping, Iterable
 import urllib.request, urllib.parse, urllib.error
 from bs4 import BeautifulSoup
 from requests import status_codes
@@ -14,25 +15,26 @@ from DocumentScrapping.DocScrap import DocScrap
 
 test_location = get_test_location()
 
-csv_file_regex = re.compile('.csv$')
+csv_file_regex = re.compile('^[\w\d][\w\d\s]+[\w\d].csv$')
 
 _min_sleep_time = 5
 
 
 class AvailableType:
     FILE = 'file'
+    TITLE = 'title'
 
     def __init__(self):
         pass
 
     def type_list(self):
-        return [self.FILE]
+        return [self.FILE, self.TITLE]
 
     def type_list_str(self):
         return ', '.join(map(str, self.type_list()))
 
 
-def write_dic_csv(movie_dict_list: []):
+def write_dic_csv(movie_dict_list: Iterable[Mapping[str, Any]]) -> None:
     # name of csv file
     filename = input("Enter the file name with which you want to save\n")
     absolute_file_path = os.path.join(os.path.expanduser('~'), 'Documents', filename)
@@ -50,42 +52,58 @@ def write_dic_csv(movie_dict_list: []):
         csv_writer.writerows(movie_dict_list)
     print("file created")
 
+def is_str(v):
+    return type(v) is str
 
-def startScrap(dataframe):
-    titles = dataframe['title'].to_list()
+def startScrap(titles: list):
     webScraping = MovieScrapping()
     movies_dict_list = []
     for title in titles:
+        if title is None or not is_str(title):
+            continue
+        title = title.strip()
         print(title)
-        movie_dict, status_codes, errorMessage = webScraping.scrapMovie(f'{title} movie')
+        if title is None or title is str or title == '' or title == 'NaN':
+            continue
+        movie_dict, status_code, errorMessage = webScraping.scrapMovie(f'"{title}" movie')
+        movie_dict['title'] = title
         print(movie_dict)
-        movies_dict_list.append(movie_dict)
+        if status_code == 200:
+            movies_dict_list.append(movie_dict)
         _sleep_time = random.randint(_min_sleep_time, 2 * _min_sleep_time)
         time.sleep(_sleep_time)
-
-    write_dic_csv(movies_dict_list)
+    if len(movies_dict_list) > 0:
+        write_dic_csv(movies_dict_list)
+    else:
+        print("There are no movies to be inserted")
 
 
 def get_from_file():
     file_path = input("Enter file path you want to use\n")
-    if file_path is None or file_path is str():
+    if file_path is None or (is_str(file_path) and file_path.strip() == ""):
         file_path = test_location
 
     dataframe = DocScrap(file_path).read()
     print(dataframe['title'])
-    startScrap(dataframe)
+    titles = dataframe['title'].to_list()
+    startScrap(titles)
 
 
-def main(type: str):
-    if type is AvailableType.FILE:
+def main(available_type: str):
+    if available_type == AvailableType.FILE:
         get_from_file()
+    elif available_type == AvailableType.TITLE:
+        title = input("Enter title\n")
+        titles = [title]
+        startScrap(titles)
     else:
-        error('Type = {type} not supported')
+        error(f'Type = {type} not supported')
 
 
 def start():
     print('Available type are from {0} '.format(AvailableType().type_list_str()))
-    main(AvailableType.FILE)
+    available_type = input("Enter the available type\n")
+    main(available_type)
 
 
 start()
